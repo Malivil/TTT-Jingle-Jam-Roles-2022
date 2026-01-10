@@ -255,12 +255,22 @@ if SERVER then
         else
             TableInsert(ply.FakerFakesBought, id)
 
+            -- Make sure the weapons don't actually do anything
+            local delay = 0.25
             if wep.Primary then
                 wep.Primary.Damage = 0
+                delay = wep.Primary.Delay
             end
             if wep.Secondary then
                 wep.Secondary.Damage = 0
             end
+            wep.PrimaryAttack = function()
+                if not IsValid(wep) then return end
+                wep:SetNextPrimaryFire(CurTime() + delay)
+                wep:TakePrimaryAmmo(1)
+            end
+            wep.SecondaryAttack = function() end
+
             wep.AllowDropOrig = wep.AllowDrop
             wep.AllowDrop = false
             wep.FakerWeaponState = FAKER_WEAPON_FAKE
