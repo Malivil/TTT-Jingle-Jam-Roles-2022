@@ -109,8 +109,6 @@ end
 
 ROLE.haspassivewin = true
 
-RegisterRole(ROLE)
-
 ----------------------
 -- SHARED FUNCTIONS --
 ----------------------
@@ -241,7 +239,7 @@ if SERVER then
     -- WEAPON PURCHASE --
     ---------------------
 
-    AddHook("TTTOrderedEquipment", "Faker_TTTOrderedEquipment", function(ply, id, is_item)
+    local function Faker_TTTOrderedEquipment(ply, id, is_item)
         if not IsValid(ply) then return end
         if not ply:IsFaker() then return end
         if is_item then return end
@@ -296,10 +294,10 @@ if SERVER then
             -- Mark this as a role weapon so Randomats and things like that don't mess with it
             wep.Category = WEAPON_CATEGORY_ROLE
         end
-    end)
+    end
 
     local fakerWinTime = nil
-    AddHook("SetupMove", "Faker_SetupMove", function(ply, mv, cmd)
+    local function Faker_SetupMove(ply, mv, cmd)
         if fakerWinTime then return end
         if not ply:IsActiveFaker() or not mv:KeyDown(IN_ATTACK) then return end
 
@@ -381,13 +379,13 @@ if SERVER then
             net.WriteString(snd)
             net.Send(ply)
         end
-    end)
+    end
 
     --------------------------
     -- LOS AND RANGE CHECKS --
     --------------------------
 
-    AddHook("TTTPlayerAliveThink", "Faker_TTTPlayerAliveThink", function(ply)
+    local function Faker_TTTPlayerAliveThink(ply)
         if not ply:IsFaker() then return end
 
         local losrequired = faker_line_of_sight_required:GetBool()
@@ -412,13 +410,13 @@ if SERVER then
         end
         ply:SetNWString("FakerPlayerInLOS", inlos)
         ply:SetNWString("FakerPlayerInRange", inrange)
-    end)
+    end
 
     -----------
     -- DEATH --
     -----------
 
-    AddHook("DoPlayerDeath", "Faker_DoPlayerDeath", function(ply, attacker, dmg)
+    local function Faker_DoPlayerDeath(ply, attacker, dmg)
         if not ply:IsFaker() then return end
 
         for _, wep in pairs(ply:GetWeapons()) do
@@ -426,9 +424,9 @@ if SERVER then
                 ply:StripWeapon(wep:GetClass())
             end
         end
-    end)
+    end
 
-    AddHook("PlayerDeath", "Faker_PlayerDeath", function(victim, infl, attacker)
+    local function Faker_PlayerDeath(victim, infl, attacker)
         if not victim:IsFaker() then return end
         if victim:IsRoleAbilityDisabled() then return end
 
@@ -490,7 +488,7 @@ if SERVER then
             local phys = ent:GetPhysicsObject()
             if phys:IsValid() then phys:ApplyForceCenter(Vector(MathRand(-100, 100), MathRand(-100, 100), 300) * phys:GetMass()) end
         end)
-    end)
+    end
 
     ----------------
     -- WIN CHECKS --
@@ -500,7 +498,7 @@ if SERVER then
         WIN_FAKER = GenerateNewWinID(ROLE_FAKER)
     end)
 
-    AddHook("TTTWinCheckComplete", "Faker_TTTWinCheckComplete", function(win_type)
+    local function Faker_TTTWinCheckComplete(win_type)
         if faker_win_ends_round:GetBool() then return end
         if win_type == WIN_NONE then return end
 
@@ -510,9 +508,9 @@ if SERVER then
             net.Start("TTT_UpdateFakerWins")
             net.Broadcast()
         end
-    end)
+    end
 
-    AddHook("TTTCheckForWin", "Faker_TTTCheckForWin", function()
+    local function Faker_TTTCheckForWin()
         if not faker_win_ends_round:GetBool() then return end
 
         if fakerWinTime then
@@ -523,15 +521,15 @@ if SERVER then
 
             return WIN_NONE
         end
-    end)
+    end
 
-    AddHook("TTTPrintResultMessage", "Faker_TTTPrintResultMessage", function(type)
+    local function Faker_TTTPrintResultMessage(type)
         if type == WIN_FAKER then
             LANG.Msg("win_faker", { role = ROLE_STRINGS[ROLE_FAKER] })
             ServerLog("Result: " .. ROLE_STRINGS[ROLE_FAKER] .. " wins.\n")
             return true
         end
-    end)
+    end
 
     -------------
     -- CLEANUP --
@@ -556,6 +554,21 @@ if SERVER then
         net.Start("TTT_ResetFakerWins")
         net.Broadcast()
     end)
+
+    ------------------
+    -- REGISTRATION --
+    ------------------
+
+    ROLE.registeredhooks = {
+        ["DoPlayerDeath"] = Faker_DoPlayerDeath,
+        ["PlayerDeath"] = Faker_PlayerDeath,
+        ["SetupMove"] = Faker_SetupMove,
+        ["TTTCheckForWin"] = Faker_TTTCheckForWin,
+        ["TTTOrderedEquipment"] = Faker_TTTOrderedEquipment,
+        ["TTTPlayerAliveThink"] = Faker_TTTPlayerAliveThink,
+        ["TTTPrintResultMessage"] = Faker_TTTPrintResultMessage,
+        ["TTTWinCheckComplete"] = Faker_TTTWinCheckComplete
+    }
 end
 
 if CLIENT then
@@ -587,39 +600,39 @@ if CLIENT then
     AddHook("TTTPrepareRound", "Faker_WinTracking_TTTPrepareRound", ResetFakerWin)
     AddHook("TTTBeginRound", "Faker_WinTracking_TTTBeginRound", ResetFakerWin)
 
-    AddHook("TTTScoringSecondaryWins", "Faker_TTTScoringSecondaryWins", function(wintype, secondary_wins)
+    local function Faker_TTTScoringSecondaryWins(wintype, secondary_wins)
         if faker_wins then
             TableInsert(secondary_wins, ROLE_FAKER)
         end
-    end)
+    end
 
     ------------
     -- EVENTS --
     ------------
 
-    AddHook("TTTEventFinishText", "Faker_TTTEventFinishText", function(e)
+    local function Faker_TTTEventFinishText(e)
         if e.win == WIN_FAKER then
             return LANG.GetParamTranslation("ev_win_faker", { role = StringLower(ROLE_STRINGS[ROLE_FAKER]) })
         end
-    end)
+    end
 
-    AddHook("TTTEventFinishIconText", "Faker_TTTEventFinishIconText", function(e, win_string, role_string)
+    local function Faker_TTTEventFinishIconText(e, win_string, role_string)
         if e.win == WIN_FAKER then
             return "ev_win_icon_also", ROLE_STRINGS[ROLE_FAKER]
         end
-    end)
+    end
 
     -------------
     -- SCORING --
     -------------
 
-    AddHook("TTTScoringWinTitle", "Faker_TTTScoringWinTitle", function(wintype, wintitles, title, secondary_win_role)
+    local function Faker_TTTScoringWinTitle(wintype, wintitles, title, secondary_win_role)
         if wintype == WIN_FAKER then
             return { txt = "hilite_win_role_singular", params = { role = string.upper(ROLE_STRINGS[ROLE_FAKER]) }, c = ROLE_COLORS[ROLE_FAKER] }
         end
-    end)
+    end
 
-    AddHook("TTTScoringSummaryRender", "Faker_TTTScoringSummaryRender", function(ply, roleFileName, groupingRole, roleColor, name, startingRole, finalRole)
+    local function Faker_TTTScoringSummaryRender(ply, roleFileName, groupingRole, roleColor, name, startingRole, finalRole)
         if not IsPlayer(ply) then return end
 
         if ply:IsFaker() then
@@ -630,7 +643,7 @@ if CLIENT then
             end
             return roleFileName, groupingRole, roleColor, name, count .. fakes, LANG.GetTranslation("score_faker_fakes_used")
         end
-    end)
+    end
 
     ---------------------
     -- WEAPON PURCHASE --
@@ -659,7 +672,7 @@ if CLIENT then
     -- HUD --
     ---------
 
-    AddHook("HUDPaint", "Faker_HUDPaint", function()
+    local function Faker_HUDPaint()
         if not client then
             client = LocalPlayer()
         end
@@ -724,7 +737,7 @@ if CLIENT then
                 surface.DrawText(text)
             end
         end
-    end)
+    end
 
     ------------
     -- SOUNDS --
@@ -778,4 +791,19 @@ if CLIENT then
             return html
         end
     end)
+
+    ------------------
+    -- REGISTRATION --
+    ------------------
+
+    ROLE.registeredhooks = {
+        ["HUDPaint"] = Faker_HUDPaint,
+        ["TTTEventFinishIconText"] = Faker_TTTEventFinishIconText,
+        ["TTTEventFinishText"] = Faker_TTTEventFinishText,
+        ["TTTScoringSecondaryWins"] = Faker_TTTScoringSecondaryWins,
+        ["TTTScoringSummaryRender"] = Faker_TTTScoringSummaryRender,
+        ["TTTScoringWinTitle"] = Faker_TTTScoringWinTitle
+    }
 end
+
+RegisterRole(ROLE)

@@ -161,16 +161,16 @@ if SERVER then
     -----------
 
     -- Krampus has no karma, positive or negative
-    AddHook("TTTKarmaGivePenalty", "Krampus_TTTKarmaGivePenalty", function(ply, penalty, victim)
+    local function Krampus_TTTKarmaGivePenalty(ply, penalty, victim)
         if IsPlayer(victim) and ply:IsKrampus() then
             return true
         end
-    end)
-    AddHook("TTTKarmaGiveReward", "Krampus_TTTKarmaGiveReward", function(ply, reward, victim)
+    end
+    local function Krampus_TTTKarmaGiveReward(ply, reward, victim)
         if IsPlayer(victim) and ply:IsKrampus() then
             return true
         end
-    end)
+    end
 
     -----------------------
     -- TARGET ASSIGNMENT --
@@ -268,7 +268,7 @@ if SERVER then
         end
     end
 
-    AddHook("DoPlayerDeath", "Krampus_DoPlayerDeath", function(ply, attacker, dmginfo)
+    local function Krampus_DoPlayerDeath(ply, attacker, dmginfo)
         if not IsValid(ply) then return end
 
         if IsPlayer(attacker) then
@@ -283,9 +283,9 @@ if SERVER then
         end
 
         UpdateKrampusTargets(ply)
-    end)
+    end
 
-    AddHook("PostEntityTakeDamage", "Krampus_PostEntityTakeDamage", function(ent, dmginfo, taken)
+    local function Krampus_PostEntityTakeDamage(ent, dmginfo, taken)
         if not taken then return end
         if not IsPlayer(ent) then return end
         local att = dmginfo:GetAttacker()
@@ -300,7 +300,7 @@ if SERVER then
         elseif ent:IsKrampus() then
             MarkPlayerNaughty(att, KRAMPUS_NAUGHTY_DAMAGE)
         end
-    end)
+    end
 
     ROLE.moverolestate = function(ply, target, keep_on_source)
         target:SetNWInt("KrampusNaughty", KRAMPUS_NAUGHTY_NONE)
@@ -340,9 +340,9 @@ if SERVER then
     end)
 
     -- Update krampus target when a player disconnects
-    AddHook("PlayerDisconnected", "Krampus_Target_PlayerDisconnected", function(ply)
+    local function Krampus_Target_PlayerDisconnected(ply)
         UpdateKrampusTargets(ply)
-    end)
+    end
 
     AddHook("TTTPlayerRoleChanged", "Krampus_Target_TTTPlayerRoleChanged", function(ply, oldRole, newRole)
         if not ply:Alive() or ply:IsSpec() then return end
@@ -358,26 +358,26 @@ if SERVER then
         end
     end)
 
-    AddHook("TTTOnRoleAbilityEnabled", "Krampus_TTTOnRoleAbilityEnabled", function(ply)
+    local function Krampus_TTTOnRoleAbilityEnabled(ply)
         if not IsPlayer(ply) or not ply:IsKrampus() then return end
 
         if ply:GetNWString("KrampusTarget", "") == "" then
             AssignKrampusTarget(ply, false, true)
         end
-    end)
+    end
 
-    AddHook("TTTTurncoatTeamChanged", "Krampus_TTTTurncoatTeamChanged", function(ply, traitor)
+    local function Krampus_TTTTurncoatTeamChanged(ply, traitor)
         if not IsPlayer(ply) then return end
 
         -- Update any krampus targets since this player might be a threat now (or might not be anymore?)
         UpdateKrampusTargets(ply)
-    end)
+    end
 
     ------------
     -- DAMAGE --
     ------------
 
-    AddHook("ScalePlayerDamage", "Krampus_ScalePlayerDamage", function(ply, hitgroup, dmginfo)
+    local function Krampus_ScalePlayerDamage(ply, hitgroup, dmginfo)
         local att = dmginfo:GetAttacker()
         -- Only apply damage scaling after the round starts
         if IsPlayer(att) and GetRoundState() >= ROUND_ACTIVE and att:IsKrampus() and ply ~= att and not ply:IsJesterTeam() and not att:IsRoleAbilityDisabled() then
@@ -386,14 +386,14 @@ if SERVER then
             local scale = krampus_target_damage_bonus:GetFloat() * killed
             dmginfo:ScaleDamage(1 + scale)
         end
-    end)
+    end
 
     -----------------------
     -- PLAYER VISIBILITY --
     -----------------------
 
     -- Add the target player to the PVS for the krampus if highlighting or Kill icon are enabled
-    AddHook("SetupPlayerVisibility", "Krampus_SetupPlayerVisibility", function(ply)
+    local function Krampus_SetupPlayerVisibility(ply)
         if not ply:ShouldBypassCulling() then return end
         if not ply:IsActiveKrampus() then return end
         if not krampus_target_vision_enabled:GetBool() and not krampus_show_target_icon:GetBool() then return end
@@ -426,7 +426,7 @@ if SERVER then
 
         -- If we got here then the Krampus is carrying someone who is not their target and they should be added to the PVS
         AddOriginToPVS(weap.Victim:GetPos())
-    end)
+    end
 
     ------------------
     -- ANNOUNCEMENT --
@@ -464,7 +464,7 @@ if SERVER then
         WIN_KRAMPUS = GenerateNewWinID(ROLE_KRAMPUS)
     end)
 
-    AddHook("TTTCheckForWin", "Krampus_TTTCheckForWin", function()
+    local function Krampus_TTTCheckForWin()
         local krampus_alive = false
         local other_alive = false
         for _, v in PlayerIterator() do
@@ -480,7 +480,7 @@ if SERVER then
         if krampus_alive and not other_alive then
             return WIN_KRAMPUS
         end
-    end)
+    end
 
     -- Delay another team's win if the Krampus is alive and there are naughty players left
     local delayEnd = nil
@@ -521,17 +521,36 @@ if SERVER then
         return WIN_NONE
     end
 
-    AddHook("TTTWinCheckBlocks", "Krampus_TTTWinCheckBlocks", function(win_blocks)
+    local function Krampus_TTTWinCheckBlocks(win_blocks)
         table.insert(win_blocks, HandleKrampusWinBlock)
-    end)
+    end
 
-    AddHook("TTTPrintResultMessage", "Krampus_TTTPrintResultMessage", function(type)
+    local function Krampus_TTTPrintResultMessage(type)
         if type == WIN_KRAMPUS then
             LANG.Msg("win_krampus", { role = ROLE_STRINGS[ROLE_KRAMPUS] })
             ServerLog("Result: " .. ROLE_STRINGS[ROLE_KRAMPUS] .. " wins.\n")
             return true
         end
-    end)
+    end
+
+    ------------------
+    -- REGISTRATION --
+    ------------------
+
+    ROLE.registeredhooks = {
+        ["DoPlayerDeath"] = Krampus_DoPlayerDeath,
+        ["PlayerDisconnected"] = Krampus_Target_PlayerDisconnected,
+        ["PostEntityTakeDamage"] = Krampus_PostEntityTakeDamage,
+        ["ScalePlayerDamage"] = Krampus_ScalePlayerDamage,
+        ["SetupPlayerVisibility"] = Krampus_SetupPlayerVisibility,
+        ["TTTCheckForWin"] = Krampus_TTTCheckForWin,
+        ["TTTKarmaGivePenalty"] = Krampus_TTTKarmaGivePenalty,
+        ["TTTKarmaGiveReward"] = Krampus_TTTKarmaGiveReward,
+        ["TTTOnRoleAbilityEnabled"] = Krampus_TTTOnRoleAbilityEnabled,
+        ["TTTPrintResultMessage"] = Krampus_TTTPrintResultMessage,
+        ["TTTTurncoatTeamChanged"] = Krampus_TTTTurncoatTeamChanged,
+        ["TTTWinCheckBlocks"] = Krampus_TTTWinCheckBlocks
+    }
 end
 
 if CLIENT then
@@ -561,11 +580,11 @@ if CLIENT then
     ---------------
 
     -- Show skull icon over the target's head
-    hook.Add("TTTTargetIDPlayerTargetIcon", "Krampus_TTTTargetIDPlayerTargetIcon", function(ply, cli, showJester)
+    local function Krampus_TTTTargetIDPlayerTargetIcon(ply, cli, showJester)
         if cli:IsKrampus() and krampus_show_target_icon:GetBool() and cli:GetNWString("KrampusTarget") == ply:SteamID64() and not showJester and not cli:IsRoleAbilityDisabled() then
             return "kill", true, ROLE_COLORS_SPRITE[ROLE_KRAMPUS], "down"
         end
-    end)
+    end
 
     ROLE.istargetidoverridden = function(ply, target, showJester)
         if not ply:IsKrampus() then return end
@@ -582,18 +601,18 @@ if CLIENT then
     ----------------
 
     -- Flash the krampus target's row on the scoreboard
-    AddHook("TTTScoreboardPlayerRole", "Krampus_TTTScoreboardPlayerRole", function(ply, cli, c, roleStr)
+    local function Krampus_TTTScoreboardPlayerRole(ply, cli, c, roleStr)
         if cli:IsKrampus() and ply:SteamID64() == cli:GetNWString("KrampusTarget", "") and not cli:IsRoleAbilityDisabled() then
             return c, roleStr, ROLE_KRAMPUS
         end
-    end)
+    end
 
-    AddHook("TTTScoreboardPlayerName", "Krampus_TTTScoreboardPlayerName", function(ply, cli, text)
+    local function Krampus_TTTScoreboardPlayerName(ply, cli, text)
         if cli:IsKrampus() and ply:SteamID64() == cli:GetNWString("KrampusTarget", "") and not cli:IsRoleAbilityDisabled() then
             local newText = " (" .. LANG.GetTranslation("target_krampus_target") .. ")"
             return ply:Nick() .. newText
         end
-    end)
+    end
 
     ROLE.isscoreboardinfooverridden = function(ply, target)
         if not ply:IsKrampus() then return end
@@ -645,7 +664,7 @@ if CLIENT then
     end)
 
     -- Handle enabling and disabling of highlighting
-    AddHook("Think", "Krampus_Highlight_Think", function()
+    local function Krampus_Highlight_Think()
         if not IsPlayer(client) or not client:Alive() or client:IsSpec() then return end
 
         if krampus_target_vision and client:IsKrampus() and not client:IsRoleAbilityDisabled() then
@@ -660,7 +679,7 @@ if CLIENT then
         if krampus_target_vision and not vision_enabled then
             RemoveHook("PreDrawHalos", "Krampus_Highlight_PreDrawHalos")
         end
-    end)
+    end
 
     ROLE.istargethighlighted = function(ply, target)
         if not ply:IsKrampus() then return end
@@ -678,7 +697,7 @@ if CLIENT then
     -- ROLE POPUP --
     ----------------
 
-    AddHook("TTTRolePopupParams", "Krampus_TTTRolePopupParams", function(cli)
+    local function Krampus_TTTRolePopupParams(cli)
         if cli:IsKrampus() then
             local target = player.GetBySteamID64(cli:GetNWString("KrampusTarget", ""))
             if IsPlayer(target) then
@@ -687,7 +706,7 @@ if CLIENT then
                 return { naughtylist = "You will be told when the first player is bad and needs to be punished." }
             end
         end
-    end)
+    end
 
     ----------------
     -- WIN CHECKS --
@@ -697,13 +716,13 @@ if CLIENT then
         WIN_KRAMPUS = WINS_BY_ROLE[ROLE_KRAMPUS]
     end)
 
-    AddHook("TTTScoringWinTitle", "Krampus_TTTScoringWinTitle", function(wintype, wintitles, title, secondary_win_role)
+    local function Krampus_TTTScoringWinTitle(wintype, wintitles, title, secondary_win_role)
         if wintype == WIN_KRAMPUS then
             return { txt = "hilite_win_role_singular", params = { role = string.upper(ROLE_STRINGS[ROLE_KRAMPUS]) }, c = ROLE_COLORS[ROLE_KRAMPUS] }
         end
-    end)
+    end
 
-    AddHook("TTTScoringSecondaryWins", "Krampus_TTTScoringSecondaryWins", function(wintype, secondary_wins)
+    local function Krampus_TTTScoringSecondaryWins(wintype, secondary_wins)
         if wintype == WIN_KRAMPUS then return end
 
         local hasKrampus = false
@@ -725,29 +744,29 @@ if CLIENT then
 
         -- If there are no naughty players remaining then Krampus wins too
         TableInsert(secondary_wins, ROLE_KRAMPUS)
-    end)
+    end
 
     ------------
     -- EVENTS --
     ------------
 
-    AddHook("TTTEventFinishText", "Krampus_TTTEventFinishText", function(e)
+    local function Krampus_TTTEventFinishText(e)
         if e.win == WIN_KRAMPUS then
             return LANG.GetParamTranslation("ev_win_krampus", { role = string.lower(ROLE_STRINGS[ROLE_KRAMPUS]) })
         end
-    end)
+    end
 
-    AddHook("TTTEventFinishIconText", "Krampus_TTTEventFinishIconText", function(e, win_string, role_string)
+    local function Krampus_TTTEventFinishIconText(e, win_string, role_string)
         if e.win == WIN_KRAMPUS then
             return win_string, ROLE_STRINGS[ROLE_KRAMPUS]
         end
-    end)
+    end
 
     ---------
     -- HUD --
     ---------
 
-    AddHook("TTTHUDInfoPaint", "Krampus_TTTHUDInfoPaint", function(ply, label_left, label_top, active_labels)
+    local function Krampus_TTTHUDInfoPaint(ply, label_left, label_top, active_labels)
         if not ply:IsKrampus() then return end
 
         local hide_role = false
@@ -769,7 +788,7 @@ if CLIENT then
         local text = LANG.GetParamTranslation("krampus_hud", { time = util.SimpleTime(remaining, "%02i:%02i") })
         local _, h = surface.GetTextSize(text)
 
-        -- Move this up based on how many other labels here are
+        -- Move this up based on how many other labels there are
         label_top = label_top + (20 * #active_labels)
 
         surface.SetTextPos(label_left, ScrH() - label_top - h)
@@ -777,7 +796,7 @@ if CLIENT then
 
         -- Track that the label was added so others can position accurately
         table.insert(active_labels, "krampus")
-    end)
+    end
 
     --------------
     -- TUTORIAL --
@@ -838,6 +857,23 @@ if CLIENT then
 
         return html
     end)
+
+    ------------------
+    -- REGISTRATION --
+    ------------------
+
+    ROLE.registeredhooks = {
+        ["TTTEventFinishIconText"] = Krampus_TTTEventFinishIconText,
+        ["TTTEventFinishText"] = Krampus_TTTEventFinishText,
+        ["TTTHUDInfoPaint"] = Krampus_TTTHUDInfoPaint,
+        ["TTTRolePopupParams"] = Krampus_TTTRolePopupParams,
+        ["TTTScoreboardPlayerName"] = Krampus_TTTScoreboardPlayerName,
+        ["TTTScoreboardPlayerRole"] = Krampus_TTTScoreboardPlayerRole,
+        ["TTTScoringSecondaryWins"] = Krampus_TTTScoringSecondaryWins,
+        ["TTTScoringWinTitle"] = Krampus_TTTScoringWinTitle,
+        ["TTTTargetIDPlayerTargetIcon"] = Krampus_TTTTargetIDPlayerTargetIcon,
+        ["Think"] = Krampus_Highlight_Think
+    }
 end
 
 -------------------
