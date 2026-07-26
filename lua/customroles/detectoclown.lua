@@ -750,16 +750,10 @@ if CLIENT then
     }
 end
 
-local function Detectoclown_TTTRoleSpawnsArtificially(role)
+AddHook("TTTRoleSpawnsArtificially", "Detectoclown_TTTRoleSpawnsArtificially", function(role)
     if role == ROLE_DETECTOCLOWN and util.CanRoleSpawn(ROLE_MARSHAL) and detectoclown_override_marshal_badge:GetBool() then
         return true
     end
-end
-
-------------------
--- REGISTRATION --
-------------------
-
-ROLE.registeredhooks["TTTRoleSpawnsArtificially"] = Detectoclown_TTTRoleSpawnsArtificially
+end)
 
 RegisterRole(ROLE)
