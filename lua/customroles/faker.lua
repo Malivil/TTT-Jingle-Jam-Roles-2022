@@ -257,7 +257,9 @@ if SERVER then
             local delay = 0.25
             if wep.Primary then
                 wep.Primary.Damage = 0
-                delay = wep.Primary.Delay
+                if wep.Primary.Delay then
+                    delay = wep.Primary.Delay
+                end
             end
             if wep.Secondary then
                 wep.Secondary.Damage = 0
